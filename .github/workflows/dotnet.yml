@@ -31,3 +31,11 @@ jobs:
         az acr login --name acrpgcetechhubprod --username ${{ secrets.SERVICE_PRINCIPAL }} --password ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }} &&
         docker build -t acrpgcetechhubprod.azurecr.io/microhackapp:1 -f Dockerfile . &&
         docker push acrpgcetechhubprod.azurecr.io/microhackapp:1
+    - name: Get Latest Container Image Tag
+      id: get_tag
+      run: |
+        TAG=$(az acr repository show-tags --name acrpgcetechhubprod --repository microhackapp --orderby time_desc --output tsv --detail | head -n 1 | awk '{print $4}')
+        NUMERIC_TAG=$(echo "$TAG" | grep -oE '[0-9]+')
+        INCREMENTED_TAG=$((NUMERIC_TAG + 1))
+        UPDATED_TAG=$(echo "$TAG" | sed "s/$NUMERIC_TAG/$INCREMENTED_TAG/")
+        echo "image_tag=$UPDATED_TAG" >> $GITHUB_OUTPUT
