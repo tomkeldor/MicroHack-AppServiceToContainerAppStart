@@ -8,29 +8,37 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
+permissions:
+  id-token: write
+  
 jobs:
   build:
 
     runs-on: ubuntu-latest
 
     steps:
+    - name: Azure CLI Login
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        
     - uses: actions/checkout@v4
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+        
     - name: Restore dependencies
       run: dotnet restore
+      
     - name: Build
       run: dotnet build --no-restore
+      
     - name: Test
       run: dotnet test --no-build --verbosity normal
-    - name: Build and Push Image
-      run: |
-        az acr login --name acrpgcetechhubprod --username ${{ secrets.SERVICE_PRINCIPAL }} --password ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }} &&
-        docker build -t acrpgcetechhubprod.azurecr.io/microhackapp:1 -f Dockerfile . &&
-        docker push acrpgcetechhubprod.azurecr.io/microhackapp:1
+      
     - name: Get Latest Container Image Tag
       id: get_tag
       run: |
@@ -39,3 +47,20 @@ jobs:
         INCREMENTED_TAG=$((NUMERIC_TAG + 1))
         UPDATED_TAG=$(echo "$TAG" | sed "s/$NUMERIC_TAG/$INCREMENTED_TAG/")
         echo "image_tag=$UPDATED_TAG" >> $GITHUB_OUTPUT
+        
+    - name: Build and Push Image
+      run: |
+        az acr login --name acrpgcetechhubprod --username ${{ secrets.SERVICE_PRINCIPAL }} --password ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }} &&
+        docker build -t acrpgcetechhubprod.azurecr.io/microhackapp:1 -f Dockerfile . &&
+        docker push acrpgcetechhubprod.azurecr.io/microhackapp:1
+    
+    - name: Deploy to Container App
+      uses: azure/container-apps-deploy-action@v2
+      with:
+        imageToDeploy: acrpgcetechhubprod.azurecr.io/microhackapp:${{ steps.get_tag.outputs.image_tag }}
+        acrUsername: ${{ secrets.ACR_USERNAME }}
+        acrPassword: ${{ secrets.ACR_PASSWORD }}
+        resourceGroup: mhuser1RG
+        containerAppEnvironment: cae-pgcetechhub-prod
+        containerAppName: ca-cetechhub-prod
+        targetPort: 8080
