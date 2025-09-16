@@ -52,7 +52,7 @@ jobs:
     - name: Build and Push Image
       run: |
         az acr login --name acrpgcetechhubprod --username ${{ secrets.SERVICE_PRINCIPAL }} --password ${{ secrets.SERVICE_PRINCIPAL_PASSWORD }} &&
-        docker build -t acrpgcetechhubprody.azurecr.io/microhackapp:${{ steps.get_tag.outputs.image_tag }} -f Dockerfile . &&
+        docker build -t acrpgcetechhubprod.azurecr.io/microhackapp:${{ steps.get_tag.outputs.image_tag }} -f Dockerfile . &&
         docker ps -a
         docker push acrpgcetechhubprod.azurecr.io/microhackapp:${{ steps.get_tag.outputs.image_tag }}
     
