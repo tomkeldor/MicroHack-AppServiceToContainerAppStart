@@ -47,6 +47,7 @@ jobs:
         INCREMENTED_TAG=$((NUMERIC_TAG + 1))
         UPDATED_TAG=$(echo "$TAG" | sed "s/$NUMERIC_TAG/$INCREMENTED_TAG/")
         echo "image_tag=$UPDATED_TAG" >> $GITHUB_OUTPUT
+        echo "image_tag=$UPDATED_TAG"
         
     - name: Build and Push Image
       run: |
